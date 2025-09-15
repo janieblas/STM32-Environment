@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to configure static IP in Ubuntu
+# Script to enable SSH and configure static IP in Ubuntu
 # Usage: ./set_static_ip.sh [IP_ADDRESS]
 
 # Colors for output
@@ -21,8 +21,8 @@ if [ ! -z "$1" ]; then
     STATIC_IP="$1"
 fi
 
-echo -e "${BLUE}=== Static IP Configurator for Ubuntu ===${NC}"
-echo -e "${YELLOW}IP to configure: ${STATIC_IP}${NC}"
+echo -e "${BLUE}=== SSH + Static IP Configurator for Ubuntu ===${NC}"
+echo -e "${YELLOW}IP to configure later: ${STATIC_IP}${NC}"
 echo
 
 # Check if running as root
@@ -31,8 +31,40 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# === Step 1: SSH Installation and Setup ===
+echo
+echo -e "${BLUE}=== Installing and Enabling SSH ===${NC}"
+
+# Install SSH server if not present
+if ! dpkg -l | grep -q openssh-server; then
+    echo -e "${YELLOW}OpenSSH Server not found, installing...${NC}"
+    apt update && apt install -y openssh-server
+else
+    echo -e "${GREEN}OpenSSH Server is already installed${NC}"
+fi
+
+# Enable and start SSH service
+echo -e "${BLUE}Enabling SSH service...${NC}"
+systemctl enable ssh --now
+
+# Verify SSH status
+systemctl is-active --quiet ssh
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ SSH service is running${NC}"
+else
+    echo -e "${RED}✗ SSH service could not be started${NC}"
+    exit 1
+fi
+
+# Show current IPs before static config
+echo -e "${BLUE}Current VM IP addresses:${NC}"
+hostname -I
+echo
+
+# === Step 2: Static IP Configuration ===
+echo -e "${BLUE}Configuring static IP...${NC}"
+
 # Detect main network interface
-echo -e "${BLUE}Detecting network interface...${NC}"
 INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
 
 if [ -z "$INTERFACE" ]; then
@@ -99,49 +131,28 @@ EOF
 
 echo -e "${GREEN}Configuration created successfully${NC}"
 
-# Display configuration
-echo -e "${BLUE}Applied configuration:${NC}"
-echo "  Interface: $INTERFACE"
-echo "  Static IP: $STATIC_IP$NETMASK"
-echo "  Gateway: $GATEWAY"
-echo "  DNS: $DNS1, $DNS2"
-echo
-
 # Apply configuration
 echo -e "${BLUE}Applying network configuration...${NC}"
 netplan apply
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Configuration applied successfully!${NC}"
-    
-    # Wait a bit for configuration to apply
-    sleep 3
-    
-    # Verify new IP
-    echo -e "${BLUE}Verifying new configuration...${NC}"
-    NEW_IP=$(hostname -I | awk '{print $1}')
-    
-    if [ "$NEW_IP" = "$STATIC_IP" ]; then
-        echo -e "${GREEN}✓ IP configured correctly: $NEW_IP${NC}"
-        echo -e "${GREEN}✓ You can now connect with: ssh user@$STATIC_IP${NC}"
-    else
-        echo -e "${YELLOW}Warning: Displayed IP ($NEW_IP) doesn't match configured IP ($STATIC_IP)${NC}"
-        echo -e "${YELLOW}This may be normal, wait a few seconds and check with 'hostname -I'${NC}"
-    fi
-    
+    echo -e "${GREEN}✓ Static IP configuration applied successfully${NC}"
 else
-    echo -e "${RED}Error applying configuration${NC}"
+    echo -e "${RED}✗ Error applying configuration${NC}"
     echo -e "${YELLOW}Restoring previous configuration...${NC}"
-    
     if [ -f "$BACKUP_FILE" ]; then
         cp "$BACKUP_FILE" "$NETPLAN_FILE"
         netplan apply
         echo -e "${GREEN}Previous configuration restored${NC}"
     fi
-    
     exit 1
 fi
 
+# Show final connection info
 echo
-echo -e "${BLUE}=== Configuration completed ===${NC}"
-echo -e "${YELLOW}Note: If you lose SSH connection, connect with the new IP: $STATIC_IP${NC}"
+echo -e "${BLUE}=== Final Configuration Completed ===${NC}"
+echo -e "${GREEN}✓ SSH is installed and running${NC}"
+echo -e "${GREEN}✓ Static IP set to: $STATIC_IP${NC}"
+echo -e "${YELLOW}You can now connect using:${NC}"
+echo -e "   ssh <your_user>@${STATIC_IP}"
+echo
