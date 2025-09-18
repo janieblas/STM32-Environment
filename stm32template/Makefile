@@ -8,22 +8,22 @@ SIZE = arm-none-eabi-size
 
 # Compiler flags
 CFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-         -Wall -Wextra -O2 -g3 -ffunction-sections -fdata-sections
+                -Wall -Wextra -O2 -g3 -ffunction-sections -fdata-sections
 
 # Assembler flags
 ASFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 # Linker flags
 LDFLAGS = -T Ld/STM32F446RETX_FLASH.ld -mcpu=cortex-m4 -mthumb \
-          -mfloat-abi=hard -mfpu=fpv4-sp-d16 -specs=nano.specs \
-          -Wl,--gc-sections -Wl,--no-warn-rwx-segments
+                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -specs=nano.specs \
+                -Wl,--gc-sections -Wl,--no-warn-rwx-segments
 
 # Include directories
 CPPFLAGS = -D STM32F446xx -D USE_HAL_DRIVER \
-           -I Inc \
-           -I Drivers/CMSIS/cmsis-device-f4/Include \
-           -I Drivers/CMSIS/Core/Include \
-           -I Drivers/stm32f4xx-hal-driver/Inc
+                -I Inc \
+                -I Drivers/CMSIS/cmsis-device-f4/Include \
+                -I Drivers/CMSIS/Core/Include \
+                -I Drivers/stm32f4xx-hal-driver/Inc
 
 # Source files
 SRCS = 	Src/main.c \
@@ -35,23 +35,18 @@ SRCS = 	Src/main.c \
 
 # HAL Driver source files (based on hal_config.h enabled modules)
 HAL_SRCS = Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_rcc.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_rcc_ex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_cortex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_gpio.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_dma.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_dma_ex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_pwr.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_pwr_ex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_uart.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash_ex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash_ramfunc.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_spi.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_adc.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_adc_ex.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_fmpi2c.c \
-           Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_fmpi2c_ex.c
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_rcc.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_rcc_ex.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_cortex.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_gpio.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_uart.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash_ex.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_flash_ramfunc.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_dma.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_dma_ex.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_pwr.c \
+                Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal_pwr_ex.c
 
 # Combine all source files
 ALL_SRCS = $(SRCS) $(HAL_SRCS)
@@ -102,7 +97,7 @@ clean:
 # Flash using OpenOCD
 flash: $(HEX_FILE)
 	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
-	        -c "program $(HEX_FILE) verify reset exit"
+	-c "program $(HEX_FILE) verify reset exit"
 
 # Flash using ST-Link utility (alternative)
 flash-stlink: $(HEX_FILE)

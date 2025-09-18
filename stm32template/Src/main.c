@@ -12,6 +12,7 @@ UART_HandleTypeDef UartHandle;
 
 /* Private function prototypes */
 static void SystemClock_Config(void);
+static void UART_Config(void);
 static void Error_Handler(void);
 int __io_putchar(int ch);
 
