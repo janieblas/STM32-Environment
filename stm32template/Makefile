@@ -29,7 +29,7 @@ CPPFLAGS = -D STM32F446xx -D USE_HAL_DRIVER \
 SRCS = 	Src/main.c \
 		Src/stm32f4xx_hal_msp.c \
 		Src/stm32f4xx_it.c \
-		Src/system_stm32f4xx.c \
+		Drivers/CMSIS/cmsis-device-f4/Source/system_stm32f4xx.c \
 		Src/User/syscalls.c \
 		Src/User/sysmem.c 
 
@@ -58,7 +58,7 @@ ASRCS = Startup/startup_stm32f446retx.s
 OBJS = $(ASRCS:.s=.o) $(ALL_SRCS:.c=.o)
 
 # Executable name
-TARGET = stm32f446_project
+TARGET = stm32f4xxx_project
 ELF_FILE = $(TARGET).elf
 HEX_FILE = $(TARGET).hex
 BIN_FILE = $(TARGET).bin
@@ -111,5 +111,27 @@ debug: $(ELF_FILE)
 	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg &
 	arm-none-eabi-gdb $(ELF_FILE) -ex "target remote :3333"
 
+# Kill OpenOCD using saved PID
+kill-debug:
+	@if [ -f .openocd.pid ]; then \
+		echo "Killing OpenOCD (PID: $$(cat .openocd.pid))..."; \
+		kill $$(cat .openocd.pid) 2>/dev/null || echo "Process already terminated"; \
+		rm -f .openocd.pid; \
+	else \
+		echo "Killing any OpenOCD process..."; \
+		pkill openocd || echo "OpenOCD was not running"; \
+	fi
+	@echo "Port 3333 freed"
+
+# Clean up any leftover processes or files
+clean-debug: kill-debug
+	@rm -f .openocd.pid
+	@echo "Complete cleanup done"
+
+# Check if port 3333 is in use
+check-debug:
+	@echo "Checking port 3333..."
+	@lsof -i :3333 || echo "Port 3333 is free"
+    
 # Phony targets
 .PHONY: all clean flash flash-stlink ex-flash debug size
