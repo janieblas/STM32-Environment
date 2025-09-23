@@ -136,6 +136,19 @@ for cmd in gcc g++ gdb size; do
 done
 
 #########################################################################
+# Install make
+echo -e "${GREEN}Installing make...${NC}"
+sudo apt install -y make
+
+echo -e "${GREEN}Verifying make installation...${NC}"
+if command -v make &>/dev/null; then
+    echo -e "${GREEN}>> make is installed: $(make --version | head -n 1) <<${NC}"
+else
+    echo -e "${RED}>> Error: make was not installed correctly. <<${NC}"
+    exit 1
+fi
+
+#########################################################################
 # OpenOCD Installation
 echo -e "${GREEN}Installing OpenOCD...${NC}"
 sudo apt update && sudo apt install -y openocd
