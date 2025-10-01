@@ -9,6 +9,7 @@
 
 /* Private variables */
 UART_HandleTypeDef UartHandle;
+uint32_t contador = 0;
 
 /* Private function prototypes */
 static void SystemClock_Config(void);
@@ -26,9 +27,13 @@ int main(void)
   UART_Config();
   
   printf("\n\r UART Printf Example: retarget the C library printf function to the UART\n\r");
+  printf("System started - Sending messages every 2 seconds...\n\r");
 
   while (1)
   {
+    HAL_Delay(2000);  // Wait 2 seconds (2000 ms)
+    contador++;
+    printf("UART Printf Example - Message #%lu\n\r", contador);
   }
 }
 
