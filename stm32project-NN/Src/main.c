@@ -1,0 +1,328 @@
+/**
+  ******************************************************************************
+  * @file    main.c 
+  * @brief   XOR Neural Network - Implementación Manual Q7
+  ******************************************************************************
+  */
+#include "main.h"
+#include <math.h>
+
+/* Private variables */
+UART_HandleTypeDef UartHandle;
+
+/* Network architecture */
+#define INPUT_SIZE 2
+#define HIDDEN_SIZE 8
+#define OUTPUT_SIZE 1
+
+/* Factor de escala de cuantización */
+#define SCALE_FACTOR 85.2606f
+
+/* ============================================================
+ * PESOS CUANTIZADOS Q7 (int8_t)
+ * ============================================================ */
+
+// W1: Input -> Hidden [2x8]
+static const int8_t W1_q7[INPUT_SIZE][HIDDEN_SIZE] = {
+    { 121,  -28,  -50,  121,  121,  -43,  127, -121},
+    {-121,  -49,  -54, -121, -121,  -21, -114,  121}
+};
+
+// b1: Bias Hidden [8]
+static const int8_t b1_q7[HIDDEN_SIZE] = {0, 0, 0, 0, 0, 0, 114, 0};
+
+// W2: Hidden -> Output [8x1]
+static const int8_t W2_q7[HIDDEN_SIZE][OUTPUT_SIZE] = {
+    { 127},
+    {   0},
+    {   0},
+    { 127},
+    { 127},
+    {   0},
+    {-120},
+    { 126}
+};
+
+// b2: Bias Output [1]
+static const int8_t b2_q7[OUTPUT_SIZE] = {-10};
+
+/* Test inputs for XOR */
+static const float test_inputs[4][2] = {
+    {0.0f, 0.0f},  // Expected: 0
+    {0.0f, 1.0f},  // Expected: 1
+    {1.0f, 0.0f},  // Expected: 1
+    {1.0f, 1.0f}   // Expected: 0
+};
+
+/* Private function prototypes */
+static void SystemClock_Config(void);
+static void UART_Config(void);
+static void Error_Handler(void);
+static float NN_Predict_Manual(const float input[2]);
+static float sigmoid_approx(float x);
+int __io_putchar(int ch);
+
+/**
+  * @brief  Main program
+  */
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    UART_Config();
+    
+    printf("\n\r==========================================\n\r");
+    printf("XOR Neural Network - Manual Q7\n\r");
+    printf("==========================================\n\r\n\r");
+    
+    printf("Network Configuration:\n\r");
+    printf("- Input neurons: %d\n\r", INPUT_SIZE);
+    printf("- Hidden neurons: %d (ReLU)\n\r", HIDDEN_SIZE);
+    printf("- Output neurons: %d (Sigmoid)\n\r", OUTPUT_SIZE);
+    printf("- Precision: Q7 (int8_t)\n\r");
+    printf("- Scale factor: %.2f\n\r\n\r", SCALE_FACTOR);
+    
+    printf("Pesos W1 (Input -> Hidden):\n\r");
+    for(int i = 0; i < INPUT_SIZE; i++) {
+        printf("  [");
+        for(int h = 0; h < HIDDEN_SIZE; h++) {
+            printf("%4d", W1_q7[i][h]);
+            if(h < HIDDEN_SIZE-1) printf(",");
+        }
+        printf("]\n\r");
+    }
+    
+    printf("\nBias b1: [");
+    for(int h = 0; h < HIDDEN_SIZE; h++) {
+        printf("%4d", b1_q7[h]);
+        if(h < HIDDEN_SIZE-1) printf(",");
+    }
+    printf("]\n\r");
+    
+    printf("\nPesos W2 (Hidden -> Output):\n\r");
+    for(int h = 0; h < HIDDEN_SIZE; h++) {
+        printf("  [%4d]\n\r", W2_q7[h][0]);
+    }
+    
+    printf("\nBias b2: [%4d]\n\r\n\r", b2_q7[0]);
+    
+    printf("Testing XOR Neural Network:\n\r");
+    printf("----------------------------\n\r");
+    
+    int correct_predictions = 0;
+    
+    for(int i = 0; i < 4; i++)
+    {
+        float prediction = NN_Predict_Manual(test_inputs[i]);
+        int expected = (int)((test_inputs[i][0] != test_inputs[i][1]) ? 1 : 0);
+        int predicted_class = (prediction > 0.5f) ? 1 : 0;
+        char result = (predicted_class == expected) ? 'V' : 'X';
+        
+        if(predicted_class == expected) {
+            correct_predictions++;
+        }
+        
+        printf("Input: [%.0f, %.0f] -> Output: %.4f -> Class: %d [%c]\n\r", 
+                test_inputs[i][0], 
+                test_inputs[i][1],
+                prediction,
+                predicted_class,
+                result);
+    }
+    
+    printf("\n\rResults Summary:\n\r");
+    printf("----------------\n\r");
+    printf("Correct predictions: %d/4\n\r", correct_predictions);
+    printf("Accuracy: %.1f%%\n\r", (correct_predictions / 4.0f) * 100.0f);
+    
+    printf("\n\rTesting complete!\n\r");
+    
+    while (1) 
+    { 
+        // Infinite loop - program finished
+    }
+}
+
+/**
+  * @brief  Predict XOR output - Implementación manual Q7
+  */
+static float NN_Predict_Manual(const float input[2])
+{
+    int8_t input_q7[INPUT_SIZE];
+    int8_t hidden_q7[HIDDEN_SIZE];
+    int8_t output_q7[OUTPUT_SIZE];
+    int32_t acc;
+    
+    // ========================================================
+    // PASO 1: Convertir entrada flotante -> Q7
+    // ========================================================
+    for (int i = 0; i < INPUT_SIZE; i++) {
+        input_q7[i] = (int8_t)(input[i] * 127.0f);
+    }
+    
+    // ========================================================
+    // PASO 2: CAPA OCULTA (Hidden Layer)
+    // ========================================================
+    for (int h = 0; h < HIDDEN_SIZE; h++)
+    {
+        acc = 0;
+        
+        // Multiplicación: Input × Weights (Q7 × Q7 = Q14)
+        for (int i = 0; i < INPUT_SIZE; i++)
+        {
+            acc += (int32_t)input_q7[i] * (int32_t)W1_q7[i][h];
+        }
+        
+        // Agregar bias (Q7, escalar a Q14)
+        acc += (int32_t)b1_q7[h] << 7;
+        
+        // Shift Q14 -> Q7 (dividir por 128)
+        acc = acc >> 7;
+        
+        // Saturar a rango Q7 [-128, 127]
+        if (acc > 127) acc = 127;
+        if (acc < -128) acc = -128;
+        
+        // ReLU: max(0, x)
+        hidden_q7[h] = (acc < 0) ? 0 : (int8_t)acc;
+    }
+    
+    // ========================================================
+    // PASO 3: CAPA DE SALIDA (Output Layer)
+    // ========================================================
+    acc = 0;
+    
+    // Multiplicación: Hidden × Weights (Q7 × Q7 = Q14)
+    for (int h = 0; h < HIDDEN_SIZE; h++)
+    {
+        acc += (int32_t)hidden_q7[h] * (int32_t)W2_q7[h][0];
+    }
+    
+    // Agregar bias (Q7, escalar a Q14)
+    acc += (int32_t)b2_q7[0] << 7;
+    
+    // Shift Q14 -> Q7
+    acc = acc >> 7;
+    
+    // Saturar a rango Q7
+    if (acc > 127) acc = 127;
+    if (acc < -128) acc = -128;
+    
+    output_q7[0] = (int8_t)acc;
+    
+    // ========================================================
+    // PASO 4: Sigmoid
+    // ========================================================
+    // Convertir Q7 -> flotante normalizado [-1, 1]
+    float output_float = (float)output_q7[0] / 127.0f;
+    
+    // Aplicar sigmoid
+    float output_sigmoid = sigmoid_approx(output_float);
+    
+    return output_sigmoid;
+}
+
+/**
+  * @brief  Aproximación de Sigmoid
+  */
+static float sigmoid_approx(float x)
+{
+    // Sigmoid estándar: 1 / (1 + e^(-x))
+    // Escalamos x para mejor rango
+    return 1.0f / (1.0f + expf(-x * 4.0f));
+}
+
+/**
+  * @brief  Retargets printf to USART
+  */
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, 0xFFFF); 
+    return ch;
+}
+
+/**
+  * @brief  System Clock Configuration
+  */
+void SystemClock_Config(void)
+{
+    RCC_ClkInitTypeDef RCC_ClkInitStruct;
+    RCC_OscInitTypeDef RCC_OscInitStruct;
+    HAL_StatusTypeDef ret = HAL_OK;
+
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.HSICalibrationValue = 0x10;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+    RCC_OscInitStruct.PLL.PLLM = 16;
+    RCC_OscInitStruct.PLL.PLLN = 360;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 7;
+    RCC_OscInitStruct.PLL.PLLR = 6;
+    
+    if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    
+    ret = HAL_PWREx_EnableOverDrive();
+    if(ret != HAL_OK)
+    {
+        while(1) { ; }
+    }
+
+    RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | 
+                                   RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;  
+    
+    if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/**
+  * @brief  Configure UART peripheral
+  */
+static void UART_Config(void)
+{
+    UartHandle.Instance          = USARTx;
+    UartHandle.Init.BaudRate     = 9600;
+    UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
+    UartHandle.Init.StopBits     = UART_STOPBITS_1;
+    UartHandle.Init.Parity       = UART_PARITY_NONE;
+    UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    UartHandle.Init.Mode         = UART_MODE_TX_RX;
+    UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+    
+    if(HAL_UART_Init(&UartHandle) != HAL_OK)
+    {
+        Error_Handler(); 
+    }
+}
+
+/**
+  * @brief  Error Handler
+  */
+static void Error_Handler(void)
+{
+    while(1)
+    {
+    }
+}
+
+#ifdef USE_FULL_ASSERT
+void assert_failed(uint8_t* file, uint32_t line)
+{ 
+    while (1)
+    {
+    }
+}
+#endif
