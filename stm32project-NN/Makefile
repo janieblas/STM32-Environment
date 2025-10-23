@@ -14,14 +14,15 @@ CFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
 ASFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 # Linker flags (added -lm for math library and -u _printf_float for float support)
-LDFLAGS = -T Ld/STM32F446RETX_FLASH.ld -mcpu=cortex-m4 -mthumb \
+LDFLAGS = -T Device/Ld/STM32F446RETX_FLASH.ld -mcpu=cortex-m4 -mthumb \
                 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -specs=nano.specs \
                 -Wl,--gc-sections -Wl,--no-warn-rwx-segments -lm \
                 -u _printf_float
 
 # Include directories
 CPPFLAGS = -D STM32F446xx -D USE_HAL_DRIVER -D ARM_MATH_CM4 \
-                -I Inc \
+                -I Core/Inc \
+				-I App/Inc \
                 -I Drivers/CMSIS/cmsis-device-f4/Include \
                 -I Drivers/CMSIS/Core/Include \
                 -I Drivers/stm32f4xx-hal-driver/Inc \
@@ -30,12 +31,13 @@ CPPFLAGS = -D STM32F446xx -D USE_HAL_DRIVER -D ARM_MATH_CM4 \
                 -I Drivers/CMSIS-DSP/Include
 
 # Source files
-SRCS = 	Src/main.c \
-		Src/stm32f4xx_hal_msp.c \
-		Src/stm32f4xx_it.c \
+SRCS = 	Core/Src/main.c \
+		Core/Src/stm32f4xx_it.c \
 		Drivers/CMSIS/cmsis-device-f4/Source/system_stm32f4xx.c \
-		Src/User/syscalls.c \
-		Src/User/sysmem.c 
+		Core/Src/User/syscalls.c \
+		Core/Src/User/sysmem.c \
+		App/Src/nn_driver.c \
+		App/Src/system_config.c
 
 # HAL Driver source files (based on hal_config.h enabled modules)
 HAL_SRCS = Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal.c \
@@ -68,30 +70,39 @@ CMSIS_NN_SRCS = Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_vec_mat_mult_t
 ALL_SRCS = $(SRCS) $(HAL_SRCS) $(CMSIS_NN_SRCS)
 
 # Assembly source files
-ASRCS = Startup/startup_stm32f446retx.s
+ASRCS = Device/Startup/startup_stm32f446retx.s
 
-# Object files
-OBJS = $(ASRCS:.s=.o) $(ALL_SRCS:.c=.o)
+# Build directory
+BUILD_DIR = build
 
-# Executable name
+# Object files (now in build directory)
+OBJS = $(ASRCS:%.s=$(BUILD_DIR)/%.o) $(ALL_SRCS:%.c=$(BUILD_DIR)/%.o)
+
+# Executable name (now in build directory)
 TARGET = stm32f4xxx_project
-ELF_FILE = $(TARGET).elf
-HEX_FILE = $(TARGET).hex
-BIN_FILE = $(TARGET).bin
+ELF_FILE = $(BUILD_DIR)/$(TARGET).elf
+HEX_FILE = $(BUILD_DIR)/$(TARGET).hex
+BIN_FILE = $(BUILD_DIR)/$(TARGET).bin
 
 # Default target
 all: $(ELF_FILE) $(HEX_FILE) $(BIN_FILE) size
 
+# Create build directory structure
+$(BUILD_DIR):
+	@mkdir -p $@
+
 # Link object files to create ELF
-$(ELF_FILE): $(OBJS)
+$(ELF_FILE): $(OBJS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
 
 # Compile C source files
-%.o: %.c
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # Assemble assembly source files
-%.o: %.s
+$(BUILD_DIR)/%.o: %.s | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
 # Generate HEX file
@@ -106,23 +117,23 @@ $(BIN_FILE): $(ELF_FILE)
 size: $(ELF_FILE)
 	$(SIZE) $<
 
-# Clean generated files
+# Clean generated files (now just removes build directory)
 clean:
-	rm -f $(OBJS) $(ELF_FILE) $(HEX_FILE) $(BIN_FILE)
+	rm -rf $(BUILD_DIR)
 
-# Flash using OpenOCD
+# Flash using OpenOCD (updated paths)
 flash: $(HEX_FILE)
 	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
 	-c "program $(HEX_FILE) verify reset exit"
 
-# Flash using ST-Link utility (alternative)
-flash-stlink: $(HEX_FILE)
-	st-flash --format ihex write $(HEX_FILE)
+# Flash using ST-Link utility (alternative, updated paths)
+flash-stlink: $(BIN_FILE)
+	st-flash write $(BIN_FILE) 0x8000000
 
 # Complete build and flash
 ex-flash: clean all flash
 
-# Debug target
+# Debug target (updated path)
 debug: $(ELF_FILE)
 	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg &
 	arm-none-eabi-gdb $(ELF_FILE) -ex "target remote :3333"
