@@ -32,12 +32,12 @@ CPPFLAGS = -D STM32F446xx -D USE_HAL_DRIVER -D ARM_MATH_CM4 \
 
 # Source files
 SRCS = 	Core/Src/main.c \
-		Core/Src/stm32f4xx_hal_msp.c \
 		Core/Src/stm32f4xx_it.c \
 		Drivers/CMSIS/cmsis-device-f4/Source/system_stm32f4xx.c \
 		Core/Src/User/syscalls.c \
 		Core/Src/User/sysmem.c \
-		App/Src/nn_driver.c
+		App/Src/nn_driver.c \
+		App/Src/system_config.c
 
 # HAL Driver source files (based on hal_config.h enabled modules)
 HAL_SRCS = Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal.c \
