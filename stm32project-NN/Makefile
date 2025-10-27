@@ -37,7 +37,11 @@ SRCS = 	Core/Src/main.c \
 		Core/Src/User/syscalls.c \
 		Core/Src/User/sysmem.c \
 		App/Src/nn_driver.c \
+		App/Src/test_fully_connected.c \
 		App/Src/system_config.c
+#App/Src/test_dotprod.c 
+#App/Src/test_fc.c 
+#App/Src/test_vec_mat_mult.c 
 
 # HAL Driver source files (based on hal_config.h enabled modules)
 HAL_SRCS = Drivers/stm32f4xx-hal-driver/Src/stm32f4xx_hal.c \
@@ -66,8 +70,11 @@ CMSIS_NN_SRCS = Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_vec_mat_mult_t
 # Drivers/CMSIS-NN/Source/ActivationFunctions/arm_relu_q7.c \
 # Drivers/CMSIS-NN/Source/SoftmaxFunctions/arm_softmax_s8.c \
 
+CMSIS_DSP_SRCS = 	Drivers/CMSIS-DSP/Source/BasicMathFunctions/arm_dot_prod_q7.c 
+
+
 # Combine all source files
-ALL_SRCS = $(SRCS) $(HAL_SRCS) $(CMSIS_NN_SRCS)
+ALL_SRCS = $(SRCS) $(HAL_SRCS) $(CMSIS_NN_SRCS) $(CMSIS_DSP_SRCS)
 
 # Assembly source files
 ASRCS = Device/Startup/startup_stm32f446retx.s
