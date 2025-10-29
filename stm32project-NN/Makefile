@@ -39,6 +39,8 @@ SRCS = 	Core/Src/main.c \
 		App/Src/nn_driver.c \
 		App/Src/test_fully_connected.c \
 		App/Src/system_config.c
+#App/Src/xor_model.c 
+#App/Src/test_fully_connected.c
 #App/Src/test_dotprod.c 
 #App/Src/test_fc.c 
 #App/Src/test_vec_mat_mult.c 
