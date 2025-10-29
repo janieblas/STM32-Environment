@@ -9,41 +9,41 @@
 // DEFINICIONES REALES (en el .c file)
 // ================================
 
+// Pesos capa oculta (Q7)
+// Pesos capa oculta (Q7) - REORGANIZADOS
 const int8_t hidden_weights[] = {
-    -14,  -63,    // Neurona 0
-     98,   98,    // Neurona 1  
-    -68,  -33,    // Neurona 2
-     99,   99,    // Neurona 3
-    125, -115,    // Neurona 4
-    113,  127,    // Neurona 5
-     98,   97,    // Neurona 6
-   -120,  120     // Neurona 7
+    // Formato: [output1_input1, output1_input2, output2_input1, output2_input2, ...]
+     78, -96, -96,  49, 113, -100, -96, -96,   // Todos los pesos para input 0
+    112,  96,  96, 127, -75,  -92,  97,  97    // Todos los pesos para input 1
 };
 
+// Bias capa oculta (Q31)
 const int32_t hidden_bias[] = {
-        0,   // Neurona 0
-    -100404, // Neurona 1
-        0,   // Neurona 2
-    -101096, // Neurona 3
-       -1,   // Neurona 4
-      273,   // Neurona 5
-   -99949,   // Neurona 6
-     -127    // Neurona 7
+     -9863,   // Neurona 0
+       -16,   // Neurona 1
+       -13,   // Neurona 2
+     -6214,   // Neurona 3
+        74,   // Neurona 4
+     12740,   // Neurona 5
+       -89,   // Neurona 6
+       -89    // Neurona 7
 };
 
-const int8_t output_weights[] = {  // This is now the actual definition
-      0,   // Neurona 0
-   -119,   // Neurona 1
-      0,   // Neurona 2
-   -116,   // Neurona 3
-    127,   // Neurona 4
-    121,   // Neurona 5
-   -117,   // Neurona 6
-    119    // Neurona 7
+// Pesos capa salida (Q7)
+const int8_t output_weights[] = {
+    -106,   // Neurona 0
+     104,   // Neurona 1
+      72,   // Neurona 2
+     -96,   // Neurona 3
+     119,   // Neurona 4
+    -127,   // Neurona 5
+     123,   // Neurona 6
+      75    // Neurona 7
 };
 
+// Bias capa salida (Q31)
 const int32_t output_bias[] = {
-    -10000       // Bias capa salida
+    0  // Bias capa salida
 };
 
 // Variables globales para CMSIS-NN
@@ -64,47 +64,40 @@ void xor_model_init(void)
     ctx.buf = NULL;
     
     // ================================
-    // INICIALIZACIÓN CAPA OCULTA
+    // INICIALIZACIÓN CAPA OCULTA - CORREGIDO
     // ================================
     
-    // Parámetros de cuantización - USANDO LOS CALCULADOS EN PYTHON
     hidden_quant_params.multiplier = HIDDEN_MULTIPLIER;
     hidden_quant_params.shift = HIDDEN_SHIFT;
     
-    // Parámetros Fully Connected
     hidden_fc_params.input_offset = 0;
     hidden_fc_params.filter_offset = 0;
     hidden_fc_params.output_offset = 0;
-    hidden_fc_params.activation.min = 0;      // ReLU
-    hidden_fc_params.activation.max = 127;
+    hidden_fc_params.activation.min = -32;
+    hidden_fc_params.activation.max = 32;
     
-    // CORREGIR DIMENSIONES según CMSIS-NN:
-    // input: [batch, height, width, input_channels]
-    // filter: [output_channels, height, width, input_channels] 
-    // output: [batch, height, width, output_channels]
+    // ✅ DIMENSIONES CORRECTAS:
     hidden_input_dims.n = 1; hidden_input_dims.h = 1; hidden_input_dims.w = 1; hidden_input_dims.c = 2;
-    hidden_filter_dims.n = 8; hidden_filter_dims.h = 1; hidden_filter_dims.w = 1; hidden_filter_dims.c = 2;  // 8 neurones, 2 inputs cada una
+    hidden_filter_dims.n = 8; hidden_filter_dims.h = 2; hidden_filter_dims.w = 1; hidden_filter_dims.c = 1;  // 8 outputs, 2 inputs
     hidden_bias_dims.n = 1; hidden_bias_dims.h = 1; hidden_bias_dims.w = 1; hidden_bias_dims.c = 8;
     hidden_output_dims.n = 1; hidden_output_dims.h = 1; hidden_output_dims.w = 1; hidden_output_dims.c = 8;
     
     // ================================
-    // INICIALIZACIÓN CAPA SALIDA
+    // INICIALIZACIÓN CAPA SALIDA - CORREGIDO
     // ================================
     
-    // Parámetros de cuantización - USANDO LOS CALCULADOS EN PYTHON
     output_quant_params.multiplier = OUTPUT_MULTIPLIER;
     output_quant_params.shift = OUTPUT_SHIFT;
     
-    // Parámetros Fully Connected
     output_fc_params.input_offset = 0;
     output_fc_params.filter_offset = 0;
     output_fc_params.output_offset = 0;
-    output_fc_params.activation.min = -128;   // Tanh (rango completo para int8)
-    output_fc_params.activation.max = 127;
+    output_fc_params.activation.min = -16;
+    output_fc_params.activation.max = 16;
     
-    // CORREGIR DIMENSIONES:
+    // ✅ DIMENSIONES CORRECTAS:
     output_input_dims.n = 1; output_input_dims.h = 1; output_input_dims.w = 1; output_input_dims.c = 8;
-    output_filter_dims.n = 1; output_filter_dims.h = 1; output_filter_dims.w = 1; output_filter_dims.c = 8;  // 1 neurona, 8 inputs
+    output_filter_dims.n = 1; output_filter_dims.h = 8; output_filter_dims.w = 1; output_filter_dims.c = 1;  // 1 output, 8 inputs
     output_bias_dims.n = 1; output_bias_dims.h = 1; output_bias_dims.w = 1; output_bias_dims.c = 1;
     output_dims.n = 1; output_dims.h = 1; output_dims.w = 1; output_dims.c = 1;
 }
@@ -233,7 +226,7 @@ void debug_output_layer(int8_t* hidden_activations) {
     }
     printf("\n\r");
     
-    // Calcular producto punto manualmente (simplificado)
+    // Calcular producto punto manualmente
     int32_t dot_product = 0;
     for(int i = 0; i < 8; i++) {
         dot_product += (int32_t)hidden_activations[i] * (int32_t)output_weights[i];
@@ -241,7 +234,25 @@ void debug_output_layer(int8_t* hidden_activations) {
     dot_product += output_bias[0];
     
     printf("Producto punto + bias: %ld\n\r", (long)dot_product);
-    printf("Bias salida: %ld\n\r", (long)output_bias[0]);
+    
+    // CÁLCULO CORRECTO de cuantización
+    int64_t multiplied = (int64_t)dot_product * output_quant_params.multiplier;
+    printf("Multiplied (raw): %ld\n\r", (long)multiplied);
+    
+    // Aplicar shift CORRECTAMENTE
+    int32_t result;
+    if (output_quant_params.shift >= 0) {
+        result = (int32_t)(multiplied >> (31 + output_quant_params.shift));
+    } else {
+        result = (int32_t)(multiplied >> (31 - output_quant_params.shift));
+    }
+    
+    int8_t final = (int8_t)CLAMP(result, output_fc_params.activation.min, output_fc_params.activation.max);
+    
+    printf("Después shift: %ld, final=%d\n\r", (long)result, final);
+    printf("Multiplier: 0x%lX, Shift: %ld\n\r", 
+           (unsigned long)output_quant_params.multiplier, 
+           (long)output_quant_params.shift);
     printf("========================\n\r");
 }
 

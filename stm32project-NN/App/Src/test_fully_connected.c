@@ -826,12 +826,12 @@ void Test_FullyConnected_Run_All(void)
     debug_dimension_confusion();
     debug_test1_configuration();
     debug_dimension_truth();
-    //test_basic_multiply();
+    test_basic_multiply();
     test_with_bias();
-    //test_input_offset();
-    //test_relu_activation();
-    //test_batch_processing();
-    //test_saturation();
+    test_input_offset();
+    test_relu_activation();
+    test_batch_processing();
+    test_saturation();
     
     printf("\n\r");
     printf("=========================================================\n\r");

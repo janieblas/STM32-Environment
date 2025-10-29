@@ -1,6 +1,6 @@
 #include "main.h"
 #include "system_config.h"
-#include "test_fully_connected.h"
+#include "and_model.h"  // Cambiar por AND
 
 int main(void)
 {
@@ -9,12 +9,13 @@ int main(void)
     UART_Config();
     
     printf("\n\r==========================================\n\r");
-    printf("CMSIS-NN Fully Connected Test Suite\n\r");
+    printf("CMSIS-NN AND Model - Basado en aprendizaje\n\r");
     printf("==========================================\n\r");
     
-    Test_FullyConnected_Run_All();
-    
-    printf("\n\rTests FC finalizados. Sistema en espera...\n\r");
+    and_model_init();
+    test_and_model();
+
+    printf("\n\r Sistema en espera...\n\r");
     
     while (1) 
     { 

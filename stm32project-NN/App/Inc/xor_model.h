@@ -7,6 +7,8 @@
 // PARÁMETROS DEL MODELO XOR
 // ================================
 
+#define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+
 // Declaraciones extern (definiciones estarán en .c file)
 extern const int8_t hidden_weights[];
 extern const int32_t hidden_bias[];
@@ -14,10 +16,10 @@ extern const int8_t output_weights[];  // Changed to extern
 extern const int32_t output_bias[];
 
 // Parámetros de cuantización
-#define HIDDEN_MULTIPLIER 0x7F000000
-#define HIDDEN_SHIFT -7
-#define OUTPUT_MULTIPLIER 0x60000000                     
-#define OUTPUT_SHIFT -5
+#define HIDDEN_MULTIPLIER 0x10000000    
+#define HIDDEN_SHIFT 3
+#define OUTPUT_MULTIPLIER 0x08000000                           
+#define OUTPUT_SHIFT 4
 
 // Prototipos de funciones
 void xor_model_init(void);

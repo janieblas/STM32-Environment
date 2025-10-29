@@ -37,7 +37,7 @@ SRCS = 	Core/Src/main.c \
 		Core/Src/User/syscalls.c \
 		Core/Src/User/sysmem.c \
 		App/Src/nn_driver.c \
-		App/Src/test_fully_connected.c \
+		App/Src/and_model.c \
 		App/Src/system_config.c
 #App/Src/xor_model.c 
 #App/Src/test_fully_connected.c
