@@ -38,7 +38,10 @@ SRCS = 	Core/Src/main.c \
 		Core/Src/User/sysmem.c \
 		App/Src/nn_driver.c \
 		App/Src/and_model.c \
+		App/Src/xor_model.c \
+		App/Src/test_tanh_activation.c \
 		App/Src/system_config.c
+##App/Src/test_tanh_activation.c 
 #App/Src/xor_model.c 
 #App/Src/test_fully_connected.c
 #App/Src/test_dotprod.c 
@@ -73,7 +76,7 @@ CMSIS_NN_SRCS = Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_vec_mat_mult_t
 # Drivers/CMSIS-NN/Source/SoftmaxFunctions/arm_softmax_s8.c \
 
 CMSIS_DSP_SRCS = 	Drivers/CMSIS-DSP/Source/BasicMathFunctions/arm_dot_prod_q7.c 
-
+ 
 
 # Combine all source files
 ALL_SRCS = $(SRCS) $(HAL_SRCS) $(CMSIS_NN_SRCS) $(CMSIS_DSP_SRCS)
