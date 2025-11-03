@@ -1,0 +1,224 @@
+/**
+  ******************************************************************************
+  * @file    main.c 
+  * @brief   XOR Neural Network with CMSIS-NN (Quantized int8)
+  ******************************************************************************
+  */
+
+#include "main.h"
+#include "arm_math_types.h"
+#include "arm_nnfunctions.h"
+#include "arm_nnsupportfunctions.h"
+#include <math.h>
+
+/* Private variables */
+UART_HandleTypeDef UartHandle;
+
+/* Network architecture */
+#define INPUT_SIZE 2
+#define HIDDEN_SIZE 2
+#define OUTPUT_SIZE 1
+
+/* Test inputs for XOR */
+static const float test_inputs[4][2] = {
+    {0.0f, 0.0f},  // Expected output: 0
+    {0.0f, 1.0f},  // Expected output: 1
+    {1.0f, 0.0f},  // Expected output: 1
+    {1.0f, 1.0f}   // Expected output: 0
+};
+
+/* Private function prototypes */
+static void SystemClock_Config(void);
+static void UART_Config(void);
+static void Error_Handler(void);
+static float NN_Predict(const float input[2]);
+int __io_putchar(int ch);
+
+/**
+  * @brief  Main program
+  */
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  UART_Config();
+  
+  printf("\n\r==========================================\n\r");
+  printf("XOR Neural Network (Float)\n\r");
+  printf("==========================================\n\r\n\r");
+  
+  printf("Network Configuration:\n\r");
+  printf("- Input neurons: %d\n\r", INPUT_SIZE);
+  printf("- Hidden neurons: %d\n\r", HIDDEN_SIZE);
+  printf("- Output neurons: %d\n\r\n\r", OUTPUT_SIZE);
+  
+  printf("Testing XOR Neural Network:\n\r");
+  printf("----------------------------\n\r");
+  
+  for(int i = 0; i < 4; i++)
+  {
+    float prediction = NN_Predict(test_inputs[i]);
+    int expected = (int)((test_inputs[i][0] != test_inputs[i][1]) ? 1 : 0);
+    int predicted_class = (prediction > 0.5f) ? 1 : 0;
+    char result = (predicted_class == expected) ? 'V' : 'X';
+    
+    printf("Input: [%.0f, %.0f] -> Output: %.4f -> Class: %d [%c]\n\r", 
+           test_inputs[i][0], 
+           test_inputs[i][1],
+           prediction,
+           predicted_class,
+           result);
+  }
+  
+  printf("\n\rTesting complete!\n\r");
+  printf("Running continuous predictions...\n\r\n\r");
+  
+  uint32_t counter = 0;
+  
+  while (1)
+  {
+    HAL_Delay(3000);
+    
+    int test_case = counter % 4;
+    float prediction = NN_Predict(test_inputs[test_case]);
+    int predicted_class = (prediction > 0.5f) ? 1 : 0;
+    
+    printf("#%lu - [%.0f,%.0f] -> %.4f (Class: %d)\n\r",
+           counter,
+           test_inputs[test_case][0],
+           test_inputs[test_case][1],
+           prediction,
+           predicted_class);
+    
+    counter++;
+  }
+}
+
+/**
+  * @brief  Predict XOR output using trained weights
+  */
+static float NN_Predict(const float input[2])
+{
+  // Hidden layer weights and biases
+  const float w1[2][2] = {
+    {5.737044f, 3.52478f},
+    {5.9316344f, 3.5594652f}
+  };
+  const float b1[2] = {-2.4071639f, -5.4164004f};
+  
+  // Output layer weights and bias
+  const float w2[2] = {7.2953734f, -7.9757547f};
+  const float b2 = -3.247943f;
+  
+  // Hidden layer computation
+  float hidden[2];
+  for(int i = 0; i < 2; i++)
+  {
+    hidden[i] = input[0] * w1[0][i] + input[1] * w1[1][i] + b1[i];
+    // Apply sigmoid
+    hidden[i] = 1.0f / (1.0f + expf(-hidden[i]));
+  }
+  
+  // Output layer computation
+  float output = hidden[0] * w2[0] + hidden[1] * w2[1] + b2;
+  
+  // Apply sigmoid
+  output = 1.0f / (1.0f + expf(-output));
+  
+  return output;
+}
+
+/**
+  * @brief  Retargets printf to USART
+  */
+int __io_putchar(int ch)
+{
+  HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, 0xFFFF); 
+  return ch;
+}
+
+/**
+  * @brief  System Clock Configuration
+  */
+void SystemClock_Config(void)
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  HAL_StatusTypeDef ret = HAL_OK;
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 0x10;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 360;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLR = 6;
+  
+  if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  
+  ret = HAL_PWREx_EnableOverDrive();
+  if(ret != HAL_OK)
+  {
+    while(1) { ; }
+  }
+
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | 
+                                 RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;  
+  
+  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief  Configure UART peripheral
+  */
+static void UART_Config(void)
+{
+  UartHandle.Instance          = USARTx;
+  UartHandle.Init.BaudRate     = 9600;
+  UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
+  UartHandle.Init.StopBits     = UART_STOPBITS_1;
+  UartHandle.Init.Parity       = UART_PARITY_NONE;
+  UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+  UartHandle.Init.Mode         = UART_MODE_TX_RX;
+  UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+    
+  if(HAL_UART_Init(&UartHandle) != HAL_OK)
+  {
+    Error_Handler(); 
+  }
+}
+
+/**
+  * @brief  Error Handler
+  */
+static void Error_Handler(void)
+{
+  while(1)
+  {
+  }
+}
+
+#ifdef USE_FULL_ASSERT
+void assert_failed(uint8_t* file, uint32_t line)
+{ 
+  while (1)
+  {
+  }
+}
+#endif
