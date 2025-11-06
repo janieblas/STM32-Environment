@@ -36,8 +36,7 @@ SRCS = 	Core/Src/main.c \
 		Drivers/CMSIS/cmsis-device-f4/Source/system_stm32f4xx.c \
 		Core/Src/User/syscalls.c \
 		Core/Src/User/sysmem.c \
-	    App/Src/xor_float.c \
-		App/Src/xor_model.c \
+	    App/Src/x_detector.c \
 		App/Src/system_config.c
 
 
@@ -62,7 +61,16 @@ CMSIS_NN_SRCS = Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_vec_mat_mult_t
                 Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_mat_mult_nt_t_s8.c \
                 Drivers/CMSIS-NN/Source/BasicMathFunctions/arm_elementwise_add_s8.c \
                 Drivers/CMSIS-NN/Source/BasicMathFunctions/arm_elementwise_mul_s8.c \
-				Drivers/CMSIS-NN/Source/FullyConnectedFunctions/arm_fully_connected_s8.c 
+				Drivers/CMSIS-NN/Source/FullyConnectedFunctions/arm_fully_connected_s8.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_convolve_s8.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_convolve_1x1_s8_fast.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_nn_mat_mult_s8.c \
+                Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_s8_to_s16_unordered_with_offset.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_nn_mat_mult_kernel_row_offset_s8_s16.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_nn_mat_mult_kernel_s8_s16.c \
+                Drivers/CMSIS-NN/Source/ConvolutionFunctions/arm_nn_mat_mult_kernel_s16.c \
+                Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_depthwise_conv_nt_t_padded_s8.c \
+                Drivers/CMSIS-NN/Source/NNSupportFunctions/arm_nn_depthwise_conv_nt_t_s8.c          
 
 CMSIS_DSP_SRCS = 	Drivers/CMSIS-DSP/Source/BasicMathFunctions/arm_dot_prod_q7.c 
  
