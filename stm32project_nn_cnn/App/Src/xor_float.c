@@ -1,6 +1,17 @@
 #include "xor_float.h"
 #include <math.h>
 
+/*==============================================================================
+ * FILE INFORMATION
+ *============================================================================*/
+/**
+ * @file    x_detector.h
+ * @author  Antonio Nieblas
+ * @email   nibj961116@gmail.com
+ * @date    November 05, 2025
+ * @brief   X pattern detector header file
+ */
+ 
 /* ===========================================
  * XOR MODEL PARAMETERS - FLOAT
  * =========================================== */
